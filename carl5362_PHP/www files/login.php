@@ -1,87 +1,71 @@
 <?php
-session_start();
-?>
-
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/jquery/3.1.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-  </head>
-  <body>
-    <div class="jumbotron" style="background:DarkSeaGreen !important">
-      <h1>Login</h1>
-    </div>
-    <div class="container">
-      <div class="row">
-              <p><br /></p>
-      </div>
-          <div class="row">
-              <div class="col-md-4"></div>
-              <div class="col-md-4">
-                  <div class="panel panel-default">
-                      <form name="addContact" method="post" action="#">
-                          <p></p>
-                          <table class="table table-bordered table-hover">
-                              <tbody>
-                                  <tr>
-                                      <td class="col-md-6">Name</td>
-                                      <td class="col-md-6">
-                                          <div class="form-group">
-                                              <input type="text" class="form-control" name="name" required maxlength="30">
-                                          </div>
-                                      </td>
-                                  </tr>
-                                  <tr>
-                                      <td class="col-md-6">Password</td>
-                                      <td class="col-md-6">
-                                          <div class="form-group">
-                                              <input type="text" class="form-control" name="password" required maxlength="30">
-                                          </div>
-                                      </td>
-                                  </tr>
-                                  <tr>
-                                      <td class="col-md-6"></td>
-                                      <td class="col-md-6">
-                                          <input type="submit" name = "submit" value="Submit">
-                                      </td>
-                                  </tr>
-                              </tbody>
-                          </table>
-                      </form>
-                  </div>
-              </div>
-              <div class="col-md-4"></div>
-          </div>
-      </div>
-  </body>  
-<?php
-if(isset($_POST['submit'])){
-$selected_val = $_POST['name'];  // Storing Selected Value In Variable
-$typed_val = $_POST['password'];  // Storing Selected Value In Variable
-
-error_reporting(E_ALL);
-ini_set( 'display_errors','1');
 include_once 'database.php';
-$con=new mysqli($db_servername, $db_username, $db_password, $db_name);
-if (mysqli_connect_errno())
-{
-  echo 'Failed to connect to MySQL:' . mysqli_connect_error();
-}
-$sql = "SELECT * FROM tbl_accounts WHERE acc_login = '$selected_val' AND acc_password = '$typed_val'";
-$result= $con->query($sql);
-if ($result->num_rows > 0) {
-  $_SESSION["value"] = 1;
-  $_SESSION["name"] = $selected_val;\
-echo '<script>window.location = "http://www-users.cselabs.umn.edu/~basal006/contacts.php" </script>';
+$_SESSION['value']=0;
+$error = False;
 
-} else {
-    echo "<h2>Enter a Valid Username and Password</h2>";
-  session_unset();
-}\
+if (isset($_POST['username'])) {
+  $con=new mysqli($db_servername, $db_username, $db_password, $db_name);
+
+  if (mysqli_connect_errno()) {
+    echo 'Failed to connect to MySQL:' . mysqli_connect_error();
+  }
+
+  $username = $_POST['username'];
+  $password = base64_encode(hash("sha256",$_POST['password'],True));
+  $result = mysqli_query($con, "SELECT acc_name, acc_password FROM tbl_accounts WHERE acc_login = '$username'");
+  $con->close();
+
+  if (mysqli_num_rows($result) < 1) {
+    $error = True;
+  }
+
+  $row = mysqli_fetch_row($result);
+
+  if ($row[1] != $password) {
+    $error = True;
+  }
+
+  if (!$error) {
+  	 $_SESSION['value']=1;
+    $_SESSION['name'] = $row[0];
+    
+    header('Location: contacts.php');
+    exit;
+  }
 }
 ?>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+  <title>Login</title>
+</head>
+
+<body>
+  <h1 style="align-content: center;">Login</h1>
+  <div class="container">
+    <form id="login" action="login.php" method="post">
+      <div class="form-group">
+        <label for="username">User:</label>
+        <input class="form-control" type="text" name="username" id="username" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input class="form-control" type="password" name="password" id="password" required>
+      </div>
+
+      <input class="btn btn-default" type="submit" value="Submit" id="submit">
+    </form>
+    <div id="error"><?php if ($error) echo "Error: Invalid credentials" ?></div>
+  </div>
+
+</body>
+
 </html>
